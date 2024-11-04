@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\PetProfileController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -24,7 +25,8 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-Route::resource('pet-profiles', PetProfileController::class)
-    ->middleware(['auth', 'verified']);
+Route::middleware(['auth'])->group(function () {
+    Route::resource('pet-profiles', PetProfileController::class);
+});
 
 require __DIR__.'/auth.php';
