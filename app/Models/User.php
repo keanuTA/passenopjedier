@@ -45,4 +45,16 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+        // Relatie met PetProfiles (als eigenaar)
+        public function petProfiles(): HasMany
+        {
+            return $this->hasMany(PetProfile::class);
+        }
+    
+        // Relatie met SittingRequests (als oppas)
+        public function sittingRequests(): HasMany
+        {
+            return $this->hasMany(SittingRequest::class, 'sitter_id');
+        }
+    
 }
