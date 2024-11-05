@@ -2,15 +2,15 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable;
 
     /**
      * The attributes that are mass assignable.
@@ -45,16 +45,20 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
-        // Relatie met PetProfiles (als eigenaar)
-        public function petProfiles(): HasMany
-        {
-            return $this->hasMany(PetProfile::class);
-        }
-    
-        // Relatie met SittingRequests (als oppas)
-        public function sittingRequests(): HasMany
-        {
-            return $this->hasMany(SittingRequest::class, 'sitter_id');
-        }
-    
+
+    /**
+     * Get the pet profiles for the user.
+     */
+    public function petProfiles(): HasMany
+    {
+        return $this->hasMany(PetProfile::class);
+    }
+
+    /**
+     * Get the sitting requests where the user is the sitter.
+     */
+    public function sittingRequests(): HasMany
+    {
+        return $this->hasMany(SittingRequest::class, 'sitter_id');
+    }
 }
