@@ -9,19 +9,24 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('pet_profiles', function (Blueprint $table) {
-            // Eerst verwijderen we de 'description' kolom
-            $table->dropColumn('description');
+            // Check of kolommen bestaan voor we ze aanpassen
+            if (Schema::hasColumn('pet_profiles', 'description')) {
+                $table->dropColumn('description');
+            }
             
-            // Dan voegen we de nieuwe kolommen toe
-            $table->string('name')->after('user_id');
-            $table->string('type')->after('name');
+            if (!Schema::hasColumn('pet_profiles', 'name')) {
+                $table->string('name')->after('user_id');
+            }
+            
+            if (!Schema::hasColumn('pet_profiles', 'type')) {
+                $table->string('type')->after('name');
+            }
         });
     }
 
     public function down(): void
     {
         Schema::table('pet_profiles', function (Blueprint $table) {
-            // In de rollback doen we het omgekeerde
             $table->dropColumn(['name', 'type']);
             $table->string('description')->after('user_id');
         });
