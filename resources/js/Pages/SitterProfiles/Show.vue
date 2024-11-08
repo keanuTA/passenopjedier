@@ -1,12 +1,18 @@
 <script setup>
-import { Link, useForm } from '@inertiajs/vue3';
-import { ref, watch } from 'vue';  
+import { ref, onMounted } from 'vue';
+import { useForm } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import InputError from '@/Components/InputError.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
-import TextInput from '@/Components/TextInput.vue';
 import Modal from '@/Components/Modal.vue';
+import { useToast } from 'vue-toastification';
+import { Link } from '@inertiajs/vue3';
 
+
+// Toast initialiseren
+const toast = useToast();
+
+// Props definiëren
 const props = defineProps({
     profile: {
         type: Object,
@@ -14,58 +20,57 @@ const props = defineProps({
     }
 });
 
-// Debug logging
-console.log('Profile data:', {
-    id: props.profile?.id,
-    uurtarief: props.profile?.uurtarief,
-    fullProfile: props.profile
-});
-
 const showContactModal = ref(false);
 
-// Formulier initialiseren
+// Formulier initialisatie met alle benodigde velden
 const contactForm = useForm({
     start_datum: '',
     eind_datum: '',
-    uurtarief: props.profile?.uurtarief?.toString() || '0.00',
+    uurtarief: '', // Deze wordt gevuld vanuit profile
     extra_informatie: '',
-    sitter_profile_id: props.profile?.id || null
+    sitter_profile_id: null // Deze wordt gevuld vanuit profile
 });
 
-// Enkele watch voor profile updates
-watch(() => props.profile, (newProfile) => {
-    if (newProfile) {
-        contactForm.sitter_profile_id = newProfile.id;
-        contactForm.uurtarief = newProfile.uurtarief?.toString() || '0.00';
+// Verbeterde initialisatie in onMounted
+onMounted(() => {
+    if (props.profile) {
+        // Zet direct de correcte waarden
+        contactForm.sitter_profile_id = props.profile.id;
+        contactForm.uurtarief = props.profile.uurtarief?.toString();
         
-        console.log('Form updated:', {
-            sitter_profile_id: contactForm.sitter_profile_id,
+        // Debug log om te controleren
+        console.log('Form geïnitialiseerd:', {
+            profile_id: contactForm.sitter_profile_id,
             uurtarief: contactForm.uurtarief
         });
     }
-}, { immediate: true, deep: true });
+});
 
-// Submit functie
+// Verbeterde submit functie
 const submitContact = () => {
+    // Extra validaties voor we versturen
     if (!contactForm.sitter_profile_id) {
-        console.error('Geen profiel ID gevonden');
+        toast.error('Er ging iets mis met het profiel ID');
         return;
     }
 
-    console.log('Versturen formulier:', {
-        formData: contactForm.data(),
-        profileId: props.profile?.id,
-        sitterProfileId: contactForm.sitter_profile_id
-    });
+    if (!contactForm.start_datum || !contactForm.eind_datum) {
+        toast.error('Vul alle datum velden in');
+        return;
+    }
+
+    console.log('Versturen formulier:', contactForm.data());
 
     contactForm.post(route('sitting-requests.store'), {
         preserveScroll: true,
         onSuccess: () => {
             showContactModal.value = false;
             contactForm.reset();
+            toast.success('Je oppasverzoek is verstuurd!');
         },
         onError: (errors) => {
             console.error('Formulier fouten:', errors);
+            toast.error(errors.error || 'Er ging iets mis bij het versturen');
         }
     });
 };
@@ -201,97 +206,95 @@ const submitContact = () => {
                 </div>
             </div>
         </div>
-
+    </AuthenticatedLayout>
        <!-- Contact Modal -->
        <Modal :show="showContactModal" @close="showContactModal = false">
-            <div class="p-6">
-                <h3 class="text-lg font-medium text-gray-900 mb-4">
-                    Contact opnemen met {{ profile.user?.name ?? 'Oppas' }}
-                </h3>
-                <form @submit.prevent="submitContact">
-                    <!-- Hidden input voor sitter_profile_id - alleen v-model -->
-                    <input
-                        type="hidden"
-                        v-model="contactForm.sitter_profile_id"
-                    />
-
-                    <!-- Start datum -->
-                    <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700">Start datum</label>
-                        <input
-                            type="datetime-local"
-                            v-model="contactForm.start_datum"
-                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                            required
-                        />
-                        <InputError :message="contactForm.errors.start_datum" class="mt-2" />
-                    </div>
-
-                    <!-- Eind datum -->
-                    <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700">Eind datum</label>
-                        <input
-                            type="datetime-local"
-                            v-model="contactForm.eind_datum"
-                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                            required
-                        />
-                        <InputError :message="contactForm.errors.eind_datum" class="mt-2" />
-                    </div>
-
-                    <!-- Uurtarief -->
-                    <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700">Uurtarief (€/uur)</label>
-                        <input
-                            type="number"
-                            step="0.01"
-                            v-model="contactForm.uurtarief"
-                            class="mt-1 block w-full rounded-md border-gray-300 bg-gray-50 shadow-sm"
-                            readonly
-                        />
-                        <InputError :message="contactForm.errors.uurtarief" class="mt-2" />
-                    </div>
-
-                    <!-- Extra informatie -->
-                    <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700">Extra informatie</label>
-                        <textarea
-                            v-model="contactForm.extra_informatie"
-                            rows="4"
-                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                            placeholder="Beschrijf hier je verzoek en eventuele specifieke wensen..."
-                            required
-                        ></textarea>
-                        <InputError :message="contactForm.errors.extra_informatie" class="mt-2" />
-                    </div>
-                    
-                    <!-- Debug info -->
-                    <div class="mb-4 p-4 bg-gray-50 rounded-lg">
-                        <h4 class="text-sm font-medium text-gray-700 mb-2">Debug Informatie:</h4>
-                        <div class="space-y-1 text-sm text-gray-600">
-                            <p>Profile ID (uit props): {{ profile?.id }}</p>
-                            <p>Profile ID (in form): {{ contactForm.sitter_profile_id }}</p>
-                            <p>Uurtarief (uit props): {{ profile?.uurtarief }}</p>
-                            <p>Uurtarief (in form): {{ contactForm.uurtarief }}</p>
-                        </div>
-                    </div>
-                    
-                    <div class="flex justify-end gap-4">
-                        <button
-                            type="button"
-                            class="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-500"
-                            @click="showContactModal = false"
-                        >
-                            Annuleren
-                        </button>
-                        <PrimaryButton 
-                            :disabled="contactForm.processing || !contactForm.sitter_profile_id"
-                        >
-                            Versturen
-                        </PrimaryButton>
-                    </div>
-                </form>
+        <div class="p-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">
+                Contact opnemen met {{ profile.user?.name }}
+            </h3>
+            
+            <!-- Algemene error melding -->
+            <div v-if="contactForm.errors.error" 
+                 class="mb-4 p-4 bg-red-50 rounded-lg text-red-600">
+                {{ contactForm.errors.error }}
             </div>
-        </Modal>
-    </AuthenticatedLayout>
+
+            <form @submit.prevent="submitContact">
+                <!-- Start datum -->
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700">
+                        Start datum *
+                    </label>
+                    <input
+                        type="datetime-local"
+                        v-model="contactForm.start_datum"
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                        required
+                    />
+                    <InputError :message="contactForm.errors.start_datum" class="mt-2" />
+                </div>
+
+                <!-- Eind datum -->
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700">
+                        Eind datum *
+                    </label>
+                    <input
+                        type="datetime-local"
+                        v-model="contactForm.eind_datum"
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                        required
+                    />
+                    <InputError :message="contactForm.errors.eind_datum" class="mt-2" />
+                </div>
+
+                <!-- Uurtarief (readonly) -->
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700">
+                        Uurtarief (€/uur)
+                    </label>
+                    <input
+                        type="number"
+                        step="0.01"
+                        v-model="contactForm.uurtarief"
+                        class="mt-1 block w-full rounded-md border-gray-300 bg-gray-50 shadow-sm"
+                        readonly
+                    />
+                </div>
+
+                <!-- Extra informatie -->
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700">
+                        Extra informatie *
+                    </label>
+                    <textarea
+                        v-model="contactForm.extra_informatie"
+                        rows="4"
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                        placeholder="Beschrijf hier je verzoek en eventuele specifieke wensen..."
+                        required
+                    ></textarea>
+                    <InputError :message="contactForm.errors.extra_informatie" class="mt-2" />
+                </div>
+
+                <!-- Form actions -->
+                <div class="flex justify-end gap-4">
+                    <button
+                        type="button"
+                        class="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-500"
+                        @click="showContactModal = false"
+                    >
+                        Annuleren
+                    </button>
+                    <PrimaryButton 
+                        :disabled="contactForm.processing"
+                        :class="{ 'opacity-75 cursor-not-allowed': contactForm.processing }"
+                    >
+                        {{ contactForm.processing ? 'Versturen...' : 'Versturen' }}
+                    </PrimaryButton>
+                </div>
+            </form>
+        </div>
+    </Modal>
 </template>

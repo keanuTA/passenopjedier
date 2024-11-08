@@ -14,72 +14,62 @@ class SittingRequestController extends Controller
      */
     public function store(Request $request)
 {
-    // Debug logging
-    \Log::info('Ontvangen oppasverzoek data:', [
-        'request_data' => $request->all(),
-        'user_id' => auth()->id()
-    ]);
+    \Log::info('Ontvangen oppasverzoek data:', $request->all());
 
     try {
-        // Valideer de input
+        // Uitgebreide validatie
         $validated = $request->validate([
             'start_datum' => 'required|date|after:now',
             'eind_datum' => 'required|date|after:start_datum',
             'extra_informatie' => 'required|string|min:10',
-            'uurtarief' => 'required|numeric|min:0',
+            'uurtarief' => [
+                'required',
+                'numeric',
+                'min:0',
+                'regex:/^\d+(\.\d{1,2})?$/' // Controleert op maximaal 2 decimalen
+            ],
             'sitter_profile_id' => 'required|exists:sitter_profiles,id'
+        ], [
+            'start_datum.after' => 'De startdatum moet in de toekomst liggen',
+            'eind_datum.after' => 'De einddatum moet na de startdatum liggen',
+            'extra_informatie.min' => 'Geef minimaal 10 karakters extra informatie',
+            'uurtarief.regex' => 'Ongeldig uurtarief formaat'
         ]);
 
-        // Cast uurtarief naar float voor de database
-        $validated['uurtarief'] = (float) $validated['uurtarief'];
-
-        // Check of gebruiker een huisdier profiel heeft
-        $petProfile = auth()->user()->petProfiles()->first();
-        
-        \Log::info('Pet profile check:', [
-            'user_id' => auth()->id(),
-            'pet_profile' => $petProfile
-        ]);
-
-        if (!$petProfile) {
-            throw new \Exception('Je moet eerst een huisdier profiel aanmaken.');
+        // Controleer of het uurtarief overeenkomt met het profiel
+        $sitterProfile = SitterProfile::findOrFail($validated['sitter_profile_id']);
+        if ((float)$validated['uurtarief'] !== (float)$sitterProfile->uurtarief) {
+            throw new \Exception('Het uurtarief komt niet overeen met het profiel');
         }
 
-        // Debug logging voor de create data
-        \Log::info('Creating sitting request with:', [
-            'user_id' => auth()->id(),
-            'pet_profile_id' => $petProfile->id,
-            'sitter_profile_id' => $validated['sitter_profile_id'], // Controleer of deze waarde correct is
-            'start_datum' => $validated['start_datum'],
-            'eind_datum' => $validated['eind_datum'],
-            'uurtarief' => $validated['uurtarief'],
-            'extra_informatie' => $validated['extra_informatie']
-        ]);
+        // Haal het huisdier profiel op
+        $petProfile = auth()->user()->petProfiles()->first();
+        if (!$petProfile) {
+            throw new \Exception('Je moet eerst een huisdier profiel aanmaken');
+        }
 
-        // Maak het sitting request aan met alle vereiste velden
+        // Maak het sitting request aan
         $sittingRequest = SittingRequest::create([
             'user_id' => auth()->id(),
             'pet_profile_id' => $petProfile->id,
-            'sitter_profile_id' => $validated['sitter_profile_id'], // Zorg dat deze waarde wordt meegegeven
+            'sitter_profile_id' => $validated['sitter_profile_id'],
             'start_datum' => $validated['start_datum'],
             'eind_datum' => $validated['eind_datum'],
-            'uurtarief' => $validated['uurtarief'],
+            'uurtarief' => (float)$validated['uurtarief'],
             'extra_informatie' => $validated['extra_informatie'],
             'status' => 'open'
         ]);
 
-        // Debug logging
-        \Log::info('Oppasverzoek aangemaakt:', $sittingRequest->toArray());
+        \Log::info('Oppasverzoek succesvol aangemaakt:', $sittingRequest->toArray());
 
         return redirect()
-    ->route('sitting-requests.my-requests')
-    ->with('success', 'Je oppasverzoek is verstuurd!');
+            ->route('sitting-requests.my-requests')
+            ->with('success', 'Je oppasverzoek is verstuurd!');
 
     } catch (\Exception $e) {
         \Log::error('Fout bij aanmaken oppasverzoek:', [
             'error' => $e->getMessage(),
-            'user_id' => auth()->id(),
-            'stack_trace' => $e->getTraceAsString()
+            'user_id' => auth()->id()
         ]);
 
         return redirect()->back()
@@ -87,6 +77,42 @@ class SittingRequestController extends Controller
             ->withInput();
     }
 }
+
+ public function show(SittingRequest $sittingRequest)
+ {
+     try {
+         // Laad alle benodigde relaties
+         $sittingRequest->load([
+             'petProfile.user',
+             'sitterProfile.user',
+             'user'
+         ]);
+
+         // Check of de ingelogde gebruiker toegang heeft tot dit verzoek
+         if ($sittingRequest->user_id !== auth()->id() && 
+             $sittingRequest->sitterProfile->user_id !== auth()->id()) {
+             return redirect()->back()
+                 ->withErrors(['error' => 'Je hebt geen toegang tot dit oppasverzoek.']);
+         }
+
+         // Bepaal of de huidige gebruiker de oppas is
+         $isSitter = $sittingRequest->sitterProfile->user_id === auth()->id();
+
+         return Inertia::render('SittingRequests/Show', [
+             'request' => $sittingRequest,
+             'isSitter' => $isSitter
+         ]);
+     } catch (\Exception $e) {
+         \Log::error('Error showing sitting request:', [
+             'error' => $e->getMessage(),
+             'trace' => $e->getTraceAsString()
+         ]);
+
+         return redirect()->back()
+             ->withErrors(['error' => 'Er ging iets mis bij het laden van het oppasverzoek.']);
+     }
+ }
+
 
 public function receivedRequests()
 {

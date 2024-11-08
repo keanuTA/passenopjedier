@@ -31,51 +31,42 @@ Route::get('/dashboard', function () {
 
 // Authenticated routes group
 Route::middleware(['auth', 'verified'])->group(function () {
+
     // User profile routes
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::controller(ProfileController::class)->group(function () {
+        Route::get('/profile', 'edit')->name('profile.edit');
+        Route::patch('/profile', 'update')->name('profile.update');
+        Route::delete('/profile', 'destroy')->name('profile.destroy');
+    });
     
     // Sitter profiles routes
     Route::resource('sitter-profiles', SitterProfileController::class);
-    Route::get('/sitter-profiles/{profile}/edit', [SitterProfileController::class, 'edit'])
-        ->name('sitter-profiles.edit');
-    Route::put('/sitter-profiles/{profile}', [SitterProfileController::class, 'update'])
-        ->name('sitter-profiles.update');
-    
-    // Reviews routes
-    Route::resource('reviews', ReviewController::class)->only([
-        'index', 'show', 'store'
-    ]);
 
     // Pet profiles routes
     Route::resource('pet-profiles', PetProfileController::class);
 
     // Sitting requests routes
     Route::prefix('sitting-requests')->group(function () {
-        Route::get('/', [SittingRequestController::class, 'index'])
-            ->name('sitting-requests.index');
-        Route::get('/create', [SittingRequestController::class, 'create'])
-            ->name('sitting-requests.create');
-        Route::post('/', [SittingRequestController::class, 'store'])
-            ->name('sitting-requests.store');
-        Route::get('/{sittingRequest}', [SittingRequestController::class, 'show'])
-            ->name('sitting-requests.show');
-        Route::get('/my-requests', [SittingRequestController::class, 'myRequests'])
-            ->name('sitting-requests.my-requests');
-        Route::get('/received-requests', [SittingRequestController::class, 'receivedRequests'])
-            ->name('sitting-requests.received');
-        Route::patch('/{sittingRequest}', [SittingRequestController::class, 'update'])
-            ->name('sitting-requests.update');
+        Route::get('/', [SittingRequestController::class, 'index'])->name('sitting-requests.index');
+        Route::get('/my-requests', [SittingRequestController::class, 'myRequests'])->name('sitting-requests.my-requests');
+        Route::get('/received', [SittingRequestController::class, 'receivedRequests'])->name('sitting-requests.received');
+        Route::get('/create', [SittingRequestController::class, 'create'])->name('sitting-requests.create');
+        Route::post('/', [SittingRequestController::class, 'store'])->name('sitting-requests.store');
+        Route::patch('/{sittingRequest}', [SittingRequestController::class, 'update'])->name('sitting-requests.update');
     });
+
+    // Reviews routes
+    Route::resource('reviews', ReviewController::class)->only(['index', 'show', 'store']);
 
     // Admin routes
     Route::middleware(['is_admin'])->prefix('admin')->group(function () {
-        Route::get('/', [AdminController::class, 'index'])->name('admin.dashboard');
-        Route::post('/users/{user}/toggle-block', [AdminController::class, 'toggleUserBlock'])
-            ->name('admin.users.toggle-block');
-        Route::delete('/sitting-requests/{sittingRequest}', [AdminController::class, 'deleteSittingRequest'])
-            ->name('admin.sitting-requests.delete');
+        Route::controller(AdminController::class)->group(function () {
+            Route::get('/', 'index')->name('admin.dashboard');
+            Route::post('/users/{user}/toggle-block', 'toggleUserBlock')
+                ->name('admin.users.toggle-block');
+            Route::delete('/sitting-requests/{sittingRequest}', 'deleteSittingRequest')
+                ->name('admin.sitting-requests.delete');
+        });
     });
 });
 
