@@ -35,12 +35,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     
-    // Sitter profiles routes
-    Route::resource('sitter-profiles', SitterProfileController::class);
-    Route::get('/sitter-profiles/{sitterProfile}/edit', [SitterProfileController::class, 'edit'])
-        ->name('sitter-profiles.edit');
-    Route::put('/sitter-profiles/{sitterProfile}', [SitterProfileController::class, 'update'])
-        ->name('sitter-profiles.update');
+      // Sitter profiles routes
+      Route::resource('sitter-profiles', SitterProfileController::class)
+      ->except(['edit', 'update', 'show']);
+        Route::get('/sitter-profiles/{profile}', [SitterProfileController::class, 'show'])
+            ->name('sitter-profiles.show');
+        Route::get('/sitter-profiles/{sitterProfile}/edit', [SitterProfileController::class, 'edit'])
+            ->name('sitter-profiles.edit');
+        Route::put('/sitter-profiles/{sitterProfile}', [SitterProfileController::class, 'update'])
+      ->name('sitter-profiles.update');
     
     Route::get('reviews', [ReviewController::class, 'index'])->name('reviews.index');
     Route::get('reviews/{review}', [ReviewController::class, 'show'])->name('reviews.show');

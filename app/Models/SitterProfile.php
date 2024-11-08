@@ -27,7 +27,7 @@ class SitterProfile extends Model
         'beschikbare_tijden' => 'array',
         'service_gebied' => 'array',
         'is_beschikbaar' => 'boolean',
-        'uurtarief' => 'decimal:2'
+        'uurtarief' => 'float'  // Veranderd van decimal:2 naar float
     ];
 
     public function user(): BelongsTo

@@ -1,13 +1,12 @@
 <script setup>
 import { Link, useForm } from '@inertiajs/vue3';
-import { ref, watch, computed, onMounted } from 'vue';  
+import { ref, watch } from 'vue';  
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import InputError from '@/Components/InputError.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
 import Modal from '@/Components/Modal.vue';
 
-//  props definiëren
 const props = defineProps({
     profile: {
         type: Object,
@@ -16,63 +15,57 @@ const props = defineProps({
 });
 
 // Debug logging
-console.log('Full profile:', props.profile);
-console.log('Complete profile data:', props.profile);
-console.log('Profile ID:', props.profile?.id);
-console.log('Uurtarief:', props.profile?.uurtarief);
-
-// Dan de modal state
-const showContactModal = ref(false);
-
-// Computed property voor uurtarief
-const profileUurtarief = computed(() => {
-    const tarief = props.profile?.uurtarief;
-    console.log('Computing uurtarief:', tarief);
-    return tarief ? String(tarief) : '';
+console.log('Profile data:', {
+    id: props.profile?.id,
+    uurtarief: props.profile?.uurtarief,
+    fullProfile: props.profile
 });
 
-// formulier initialiseren
+const showContactModal = ref(false);
+
+// Formulier initialiseren
 const contactForm = useForm({
     start_datum: '',
     eind_datum: '',
-    uurtarief: props.profile?.uurtarief ?? '0.00',
+    uurtarief: props.profile?.uurtarief?.toString() || '0.00',
     extra_informatie: '',
-    sitter_profile_id: props.profile?.id // Direct de ID meegeven
+    sitter_profile_id: props.profile?.id || null
 });
 
-
-// watch toevoegen 
+// Enkele watch voor profile updates
 watch(() => props.profile, (newProfile) => {
-    console.log('Profile updated:', newProfile);
     if (newProfile) {
         contactForm.sitter_profile_id = newProfile.id;
-        contactForm.uurtarief = newProfile.uurtarief;
-    }
-}, { immediate: true, deep: true });
-
-onMounted(() => {
-    if (props.profile) {
-        contactForm.sitter_profile_id = props.profile.id ?? null;
-        contactForm.uurtarief = props.profile.uurtarief ?? 0.00;
-        console.log('Form initialized with:', {
+        contactForm.uurtarief = newProfile.uurtarief?.toString() || '0.00';
+        
+        console.log('Form updated:', {
             sitter_profile_id: contactForm.sitter_profile_id,
             uurtarief: contactForm.uurtarief
         });
     }
-});
+}, { immediate: true, deep: true });
 
 // Submit functie
 const submitContact = () => {
-    console.log('Submitting form:', contactForm.data());
+    if (!contactForm.sitter_profile_id) {
+        console.error('Geen profiel ID gevonden');
+        return;
+    }
+
+    console.log('Versturen formulier:', {
+        formData: contactForm.data(),
+        profileId: props.profile?.id,
+        sitterProfileId: contactForm.sitter_profile_id
+    });
 
     contactForm.post(route('sitting-requests.store'), {
+        preserveScroll: true,
         onSuccess: () => {
-            console.log('Form submitted successfully');
             showContactModal.value = false;
             contactForm.reset();
         },
         onError: (errors) => {
-            console.error('Form submission errors:', errors);
+            console.error('Formulier fouten:', errors);
         }
     });
 };
@@ -273,10 +266,14 @@ const submitContact = () => {
                     </div>
                     
                     <!-- Debug info -->
-                    <div class="mb-4 text-sm text-gray-500">
-                        <p>Profile ID: {{ profile.id }}</p>
-                        <p>Uurtarief: {{ profile.uurtarief }}</p>
-                        <p>Form Profile ID: {{ contactForm.sitter_profile_id }}</p>
+                    <div class="mb-4 p-4 bg-gray-50 rounded-lg">
+                        <h4 class="text-sm font-medium text-gray-700 mb-2">Debug Informatie:</h4>
+                        <div class="space-y-1 text-sm text-gray-600">
+                            <p>Profile ID (uit props): {{ profile?.id }}</p>
+                            <p>Profile ID (in form): {{ contactForm.sitter_profile_id }}</p>
+                            <p>Uurtarief (uit props): {{ profile?.uurtarief }}</p>
+                            <p>Uurtarief (in form): {{ contactForm.uurtarief }}</p>
+                        </div>
                     </div>
                     
                     <div class="flex justify-end gap-4">
