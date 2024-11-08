@@ -3,6 +3,9 @@ import { Link, useForm } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import ReviewCreate from '@/Pages/Reviews/Create.vue';
 import { ref } from 'vue';
+import { useToast } from 'vue-toastification';
+
+const toast = useToast();
 
 const props = defineProps({
     requests: {
@@ -24,7 +27,8 @@ const statusForm = useForm({
 
 const handleStatus = (request, status) => {
     statusForm.status = status;
-    statusForm.put(route('sitting-requests.update', request.id), {
+    statusForm.patch(route('sitting-requests.update', request.id), {
+        preserveScroll: true,
         onSuccess: () => {
             if (status === 'accepted') {
                 selectedRequest.value = request;
@@ -82,7 +86,7 @@ const formatDate = (dateString) => {
                                     <div class="flex-1">
                                         <div class="flex items-center gap-2 mb-2">
                                             <h3 class="text-lg font-semibold text-gray-900">
-                                                {{ request.pet_profile.name }}
+                                                {{ request.pet_profile?.name }}
                                             </h3>
                                             <span class="px-2 py-1 text-xs font-medium rounded-full" 
                                                   :class="{
@@ -97,8 +101,8 @@ const formatDate = (dateString) => {
                                         </div>
                                         
                                         <div class="text-sm text-gray-600 mb-2">
-                                            <p class="mb-1">Eigenaar: {{ request.user.name }}</p>
-                                            <p class="mb-1">Type huisdier: {{ request.pet_profile.type }}</p>
+                                            <p class="mb-1">Eigenaar: {{ request.user?.name }}</p>
+                                            <p class="mb-1">Type huisdier: {{ request.pet_profile?.type }}</p>
                                             <p class="mb-1">Van: {{ formatDate(request.start_datum) }}</p>
                                             <p class="mb-1">Tot: {{ formatDate(request.eind_datum) }}</p>
                                             <p class="mb-1">Uurtarief: €{{ request.uurtarief }}/uur</p>
@@ -115,15 +119,17 @@ const formatDate = (dateString) => {
                                          class="flex flex-col gap-2 min-w-[200px]">
                                         <button 
                                             @click="handleStatus(request, 'accepted')"
-                                            class="w-full px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors font-medium"
+                                            :disabled="statusForm.processing"
+                                            class="w-full px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
-                                            Accepteren
+                                            {{ statusForm.processing ? 'Bezig...' : 'Accepteren' }}
                                         </button>
                                         <button 
                                             @click="handleStatus(request, 'rejected')"
-                                            class="w-full px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors font-medium"
+                                            :disabled="statusForm.processing"
+                                            class="w-full px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
-                                            Weigeren
+                                            {{ statusForm.processing ? 'Bezig...' : 'Weigeren' }}
                                         </button>
                                     </div>
                                 </div>

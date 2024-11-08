@@ -17,50 +17,24 @@ class SittingRequest extends Model
         'status'
     ];
 
-    protected $casts = [
-        'start_datum' => 'datetime',
-        'eind_datum' => 'datetime',
-        'uurtarief' => 'decimal:2'
-    ];
-
-    // Relatie met PetProfile
-    public function petProfile()
-    {
-        return $this->belongsTo(PetProfile::class);
-    }
-
-    // Relatie met User (eigenaar)
-    public function user()
-    {
-        return $this->belongsTo(User::class);
-    }
-
-    // Relatie met SitterProfile (oppas) - Deze ontbrak!
+    // Voeg deze relaties toe als ze er nog niet zijn
     public function sitterProfile()
     {
         return $this->belongsTo(SitterProfile::class);
     }
 
-    // Relatie met reacties van oppassen
-    public function responses()
+    public function user()
     {
-        return $this->hasMany(SittingResponse::class);
+        return $this->belongsTo(User::class);
     }
 
-    // Relatie met review
-    public function review()
+    public function petProfile()
     {
-        return $this->hasOne(Review::class);
+        return $this->belongsTo(PetProfile::class);
     }
 
-    // Helper method voor status checks
-    public function isOpen()
+    public function reviews()
     {
-        return $this->status === 'open';
-    }
-
-    public function isAssigned()
-    {
-        return $this->status === 'toegewezen';
+        return $this->hasMany(Review::class);
     }
 }

@@ -12,99 +12,104 @@ use Illuminate\Support\Facades\Log;
 class SitterProfileController extends Controller
 {
     public function index(Request $request)
-{
-    try {
-        // Log binnenkomende request
-        Log::info('Filter request ontvangen:', [
-            'alle_parameters' => $request->all(),
-            'huisdier_type' => $request->huisdier_type,
-            'max_uurtarief' => $request->max_uurtarief
-        ]);
-
-        // Basisquery met debug logging
-        $query = SitterProfile::with('user')->where('is_beschikbaar', true);
-
-        // Filter op huisdier type met logging
-        if ($request->filled('huisdier_type')) {
-            Log::info('Huisdier type filter toegepast:', [
-                'type' => $request->huisdier_type
-            ]);
-
-            // Aangepaste JSON query voor het controleren van array waarden
-            $query->whereRaw(
-                "JSON_CONTAINS(JSON_UNQUOTE(huisdier_voorkeuren), ?)", 
-                ['"' . $request->huisdier_type . '"']
-            );
-            
-            Log::info('Query na huisdier filter:', [
-                'sql' => $query->toSql(),
-                'bindings' => $query->getBindings()
-            ]);
-        }
-
-        // Filter op maximum uurtarief met logging
-        if ($request->filled('max_uurtarief')) {
-            $maxTarief = (float)$request->max_uurtarief;
-            Log::info('Uurtarief filter toegepast:', [
-                'max_tarief' => $maxTarief
-            ]);
-
-            $query->where('uurtarief', '<=', $maxTarief);
-        }
-
-        // Voer de query uit en log de resultaten
-        $profiles = $query->paginate(12)
-            ->through(function ($profile) {
-                return $this->formatProfile($profile);
-            });
-
-        Log::info('Query resultaten:', [
-            'aantal_resultaten' => $profiles->total(),
-            'huidige_pagina' => $profiles->currentPage(),
-            'resultaten_per_pagina' => $profiles->perPage()
-        ]);
-
-        return Inertia::render('SitterProfiles/Index', [
-            'profiles' => $profiles,
-            'filters' => $request->only(['huisdier_type', 'max_uurtarief']),
-            'can' => [
-                'create_profile' => auth()->check() && !auth()->user()->sitterProfile()->exists()
-            ]
-        ]);
-
-    } catch (\Exception $e) {
-        Log::error('Filter error:', [
-            'message' => $e->getMessage(),
-            'stack_trace' => $e->getTraceAsString(),
-            'request_data' => $request->all()
-        ]);
-        
-        return Inertia::render('SitterProfiles/Index', [
-            'profiles' => [],
-            'error' => 'Er is een fout opgetreden bij het filteren van de profielen.'
-        ]);
-    }
-}
-
-    public function show(SitterProfile $profile)
     {
         try {
-            Log::info('Show profiel opgevraagd:', [
-                'profile_id' => $profile->id,
-                'user_id' => $profile->user_id
+            // Log binnenkomende request
+            Log::info('Filter request ontvangen:', [
+                'alle_parameters' => $request->all(),
+                'huisdier_type' => $request->huisdier_type,
+                'max_uurtarief' => $request->max_uurtarief
             ]);
 
-            $profile->load('user', 'reviews.user');
-            return Inertia::render('SitterProfiles/Show', [
-                'profile' => $this->formatProfile($profile)
+            // Basisquery met debug logging
+            $query = SitterProfile::with('user')->where('is_beschikbaar', true);
+
+            // Filter op huisdier type met logging
+            if ($request->filled('huisdier_type')) {
+                Log::info('Huisdier type filter toegepast:', [
+                    'type' => $request->huisdier_type
+                ]);
+
+                // Aangepaste JSON query voor het controleren van array waarden
+                $query->whereRaw(
+                    "JSON_CONTAINS(JSON_UNQUOTE(huisdier_voorkeuren), ?)", 
+                    ['"' . $request->huisdier_type . '"']
+                );
+            }
+
+            // Filter op maximum uurtarief met logging
+            if ($request->filled('max_uurtarief')) {
+                $maxTarief = (float)$request->max_uurtarief;
+                Log::info('Uurtarief filter toegepast:', [
+                    'max_tarief' => $maxTarief
+                ]);
+
+                $query->where('uurtarief', '<=', $maxTarief);
+            }
+
+            // Voer de query uit en log de resultaten
+            $profiles = $query->paginate(12)
+                ->through(function ($profile) {
+                    return $this->formatProfile($profile);
+                });
+
+            return Inertia::render('SitterProfiles/Index', [
+                'profiles' => $profiles,
+                'filters' => $request->only(['huisdier_type', 'max_uurtarief']),
+                'can' => [
+                    'create_profile' => auth()->check() && !auth()->user()->sitterProfile()->exists()
+                ]
             ]);
+
         } catch (\Exception $e) {
-            Log::error('Fout bij tonen profiel:', [
-                'profile_id' => $profile->id,
-                'error' => $e->getMessage()
+            Log::error('Filter error:', [
+                'message' => $e->getMessage(),
+                'stack_trace' => $e->getTraceAsString(),
+                'request_data' => $request->all()
             ]);
             
-            return redirect()->back()->withErrors([
+            return Inertia::render('SitterProfiles/Index', [
+                'profiles' => [],
+                'error' => 'Er is een fout opgetreden bij het filteren van de profielen.'
+            ]);
+        }
+    }
+
+    public function show($id)
+    {
+        try {
+            // Haal het profiel expliciet op
+            $profile = SitterProfile::with(['user', 'reviews.user'])->findOrFail($id);
+
+            // Log het ruwe profiel voor debugging
+            Log::info('Raw profile data in show:', [
+                'id' => $profile->id,
+                'raw_uurtarief' => $profile->uurtarief,
+                'raw_uurtarief_type' => gettype($profile->uurtarief),
+                'user_id' => $profile->user_id,
+                'all_attributes' => $profile->getAttributes()
+            ]);
+
+            $formattedProfile = $this->formatProfile($profile);
+
+            // Log het geformatteerde profiel voor debugging
+            Log::info('Formatted profile in show:', [
+                'id' => $formattedProfile->id,
+                'formatted_uurtarief' => $formattedProfile->uurtarief,
+                'formatted_uurtarief_type' => gettype($formattedProfile->uurtarief)
+            ]);
+
+            return Inertia::render('SitterProfiles/Show', [
+                'profile' => $formattedProfile
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error in show method:', [
+                'id' => $id,
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return redirect()->route('sitter-profiles.index')->withErrors([
                 'error' => 'Er is een fout opgetreden bij het laden van het profiel.'
             ]);
         }
@@ -113,11 +118,11 @@ class SitterProfileController extends Controller
     public function create()
     {
         try {
-            Log::info('Create profiel pagina opgevraagd door gebruiker:', [
-                'user_id' => auth()->id()
+            return Inertia::render('SitterProfiles/Create', [
+                'huisdier_types' => [
+                    'Hond', 'Kat', 'Vogel', 'Knaagdier', 'Vis', 'Anders'
+                ]
             ]);
-
-            return Inertia::render('SitterProfiles/Create');
         } catch (\Exception $e) {
             Log::error('Fout bij laden create pagina:', [
                 'error' => $e->getMessage()
@@ -132,11 +137,6 @@ class SitterProfileController extends Controller
     public function store(Request $request)
     {
         try {
-            Log::info('Nieuw profiel aanmaken gestart:', [
-                'user_id' => auth()->id(),
-                'request_data' => $request->except(['profielfoto', 'video_intro'])
-            ]);
-
             $validated = $request->validate([
                 'ervaring' => 'required|string|min:10',
                 'over_mij' => 'required|string|min:10',
@@ -149,7 +149,6 @@ class SitterProfileController extends Controller
 
             DB::beginTransaction();
 
-            // Verwerk bestanden
             if ($request->hasFile('profielfoto')) {
                 $validated['profielfoto_pad'] = $request->file('profielfoto')
                     ->store('profielfoto', 'sitter_uploads');
@@ -160,26 +159,27 @@ class SitterProfileController extends Controller
                     ->store('video', 'sitter_uploads');
             }
 
+            // Format het uurtarief voor opslag
+            $validated['uurtarief'] = number_format(
+                (float)str_replace(',', '.', $validated['uurtarief']),
+                2,
+                '.',
+                ''
+            );
+
             // JSON encode de huisdier voorkeuren
             $validated['huisdier_voorkeuren'] = json_encode($validated['huisdier_voorkeuren']);
 
-            // Maak het profiel aan
             $profile = auth()->user()->sitterProfile()->create($validated);
 
             DB::commit();
-
-            Log::info('Nieuw profiel succesvol aangemaakt:', [
-                'profile_id' => $profile->id
-            ]);
 
             return redirect()->route('sitter-profiles.show', $profile)
                 ->with('success', 'Je oppasprofiel is aangemaakt!');
 
         } catch (\Exception $e) {
             DB::rollBack();
-            
             Log::error('Fout bij aanmaken profiel:', [
-                'user_id' => auth()->id(),
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
@@ -193,28 +193,14 @@ class SitterProfileController extends Controller
     public function edit(SitterProfile $profile)
     {
         try {
-            Log::info('Edit profiel pagina opgevraagd:', [
-                'profile_id' => $profile->id,
-                'user_id' => auth()->id()
-            ]);
-
             if ($profile->user_id !== auth()->id()) {
-                Log::warning('Ongeautoriseerde toegang tot edit profiel:', [
-                    'profile_id' => $profile->id,
-                    'requested_by' => auth()->id()
-                ]);
                 abort(403);
             }
 
             return Inertia::render('SitterProfiles/Edit', [
                 'sitterProfile' => $this->formatProfile($profile),
                 'huisdier_types' => [
-                    'Hond',
-                    'Kat',
-                    'Vogel',
-                    'Knaagdier',
-                    'Vis',
-                    'Anders'
+                    'Hond', 'Kat', 'Vogel', 'Knaagdier', 'Vis', 'Anders'
                 ]
             ]);
         } catch (\Exception $e) {
@@ -224,7 +210,7 @@ class SitterProfileController extends Controller
             ]);
             
             return redirect()->back()->withErrors([
-                'error' => 'Er is een fout opgetreden bij het laden van de bewerkpagina.'
+                'error' => 'Er is een fout opgetreden.'
             ]);
         }
     }
@@ -232,16 +218,7 @@ class SitterProfileController extends Controller
     public function update(Request $request, SitterProfile $profile)
     {
         try {
-            Log::info('Update profiel gestart:', [
-                'profile_id' => $profile->id,
-                'request_data' => $request->except(['profielfoto', 'video_intro'])
-            ]);
-
             if ($profile->user_id !== auth()->id()) {
-                Log::warning('Ongeautoriseerde poging tot update profiel:', [
-                    'profile_id' => $profile->id,
-                    'requested_by' => auth()->id()
-                ]);
                 abort(403);
             }
 
@@ -257,7 +234,6 @@ class SitterProfileController extends Controller
 
             DB::beginTransaction();
 
-            // Verwerk nieuwe profielfoto
             if ($request->hasFile('profielfoto')) {
                 if ($profile->profielfoto_pad) {
                     Storage::disk('sitter_uploads')->delete($profile->profielfoto_pad);
@@ -266,7 +242,6 @@ class SitterProfileController extends Controller
                     ->store('profielfoto', 'sitter_uploads');
             }
 
-            // Verwerk nieuwe video
             if ($request->hasFile('video_intro')) {
                 if ($profile->video_intro_pad) {
                     Storage::disk('sitter_uploads')->delete($profile->video_intro_pad);
@@ -275,28 +250,29 @@ class SitterProfileController extends Controller
                     ->store('video', 'sitter_uploads');
             }
 
+            // Format het uurtarief voor update
+            $validated['uurtarief'] = number_format(
+                (float)str_replace(',', '.', $validated['uurtarief']),
+                2,
+                '.',
+                ''
+            );
+
             // JSON encode de huisdier voorkeuren
             $validated['huisdier_voorkeuren'] = json_encode($validated['huisdier_voorkeuren']);
 
-            // Update het profiel
             $profile->update($validated);
 
             DB::commit();
-
-            Log::info('Profiel succesvol bijgewerkt:', [
-                'profile_id' => $profile->id
-            ]);
 
             return redirect()->route('sitter-profiles.show', $profile)
                 ->with('success', 'Je oppasprofiel is bijgewerkt!');
 
         } catch (\Exception $e) {
             DB::rollBack();
-            
             Log::error('Fout bij bijwerken profiel:', [
                 'profile_id' => $profile->id,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'error' => $e->getMessage()
             ]);
 
             return back()->withErrors([
@@ -308,22 +284,12 @@ class SitterProfileController extends Controller
     public function destroy(SitterProfile $profile)
     {
         try {
-            Log::info('Verwijderen profiel gestart:', [
-                'profile_id' => $profile->id,
-                'user_id' => auth()->id()
-            ]);
-
             if ($profile->user_id !== auth()->id()) {
-                Log::warning('Ongeautoriseerde poging tot verwijderen profiel:', [
-                    'profile_id' => $profile->id,
-                    'requested_by' => auth()->id()
-                ]);
                 abort(403);
             }
 
             DB::beginTransaction();
 
-            // Verwijder bestanden
             if ($profile->profielfoto_pad) {
                 Storage::disk('sitter_uploads')->delete($profile->profielfoto_pad);
             }
@@ -331,25 +297,18 @@ class SitterProfileController extends Controller
                 Storage::disk('sitter_uploads')->delete($profile->video_intro_pad);
             }
 
-            // Verwijder het profiel
             $profile->delete();
 
             DB::commit();
-
-            Log::info('Profiel succesvol verwijderd:', [
-                'profile_id' => $profile->id
-            ]);
 
             return redirect()->route('sitter-profiles.index')
                 ->with('success', 'Je oppasprofiel is verwijderd.');
 
         } catch (\Exception $e) {
             DB::rollBack();
-            
             Log::error('Fout bij verwijderen profiel:', [
                 'profile_id' => $profile->id,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'error' => $e->getMessage()
             ]);
 
             return back()->withErrors([
@@ -361,30 +320,52 @@ class SitterProfileController extends Controller
     private function formatProfile($profile)
     {
         try {
-            // Foto URL toevoegen
-            if ($profile->profielfoto_pad) {
-                $profile->profielfoto_url = Storage::disk('sitter_uploads')->url($profile->profielfoto_pad);
+            if (!$profile || !$profile->exists) {
+                throw new \InvalidArgumentException('Invalid profile provided to formatProfile');
             }
-            
-            // JSON voorkeuren decoderen - aangepaste logica voor dubbele encoding
-            if (is_string($profile->huisdier_voorkeuren)) {
-                // Verwijder eventuele extra quotes en escape karakters
-                $cleaned = str_replace('\\', '', $profile->huisdier_voorkeuren);
-                $cleaned = trim($cleaned, '"');
-                $profile->huisdier_voorkeuren = json_decode($cleaned, true) ?? [];
-                
-                Log::info('Huisdier voorkeuren gedecodeerd:', [
-                    'profile_id' => $profile->id,
-                    'origineel' => $profile->huisdier_voorkeuren,
-                    'cleaned' => $cleaned,
-                    'gedecodeerd' => $profile->huisdier_voorkeuren
-                ]);
+
+            Log::info('formatProfile input:', [
+                'id' => $profile->id,
+                'input_uurtarief' => $profile->uurtarief,
+                'input_type' => gettype($profile->uurtarief),
+                'all_attributes' => $profile->getAttributes()
+            ]);
+
+            // Maak een kopie
+            $formatted = clone $profile;
+
+            // 1. Format uurtarief
+            if (is_string($formatted->uurtarief)) {
+                // Vervang eventuele komma's door punten
+                $formatted->uurtarief = str_replace(',', '.', $formatted->uurtarief);
             }
-            
-            // Zorg dat uurtarief altijd als float wordt teruggegeven
-            $profile->uurtarief = (float)$profile->uurtarief;
-            
-            return $profile;
+            // Converteer naar float en rond af op 2 decimalen
+            $formatted->uurtarief = is_null($formatted->uurtarief) 
+                ? 0.00 
+                : round((float)$formatted->uurtarief, 2);
+
+            // 2. Format huisdier voorkeuren
+            if (is_string($formatted->huisdier_voorkeuren)) {
+                // Verwijder onnodige quotes en escape karakters
+                $cleaned = trim($formatted->huisdier_voorkeuren, '"');
+                $cleaned = str_replace('\\', '', $cleaned);
+                $formatted->huisdier_voorkeuren = json_decode($cleaned, true) ?? [];
+            }
+
+            // 3. Voeg profielfoto URL toe
+            if ($formatted->profielfoto_pad) {
+                $formatted->profielfoto_url = Storage::disk('sitter_uploads')
+                    ->url($formatted->profielfoto_pad);
+            }
+
+            Log::info('formatProfile output:', [
+                'id' => $formatted->id,
+                'output_uurtarief' => $formatted->uurtarief,
+                'output_type' => gettype($formatted->uurtarief)
+            ]);
+
+            return $formatted;
+
         } catch (\Exception $e) {
             Log::error('Fout bij formatteren profiel:', [
                 'profile_id' => $profile->id ?? 'unknown',

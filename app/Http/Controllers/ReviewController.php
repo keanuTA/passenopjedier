@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Review;
+use App\Models\SittingRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class ReviewController extends Controller
@@ -20,14 +22,38 @@ class ReviewController extends Controller
                 'review_text' => 'required|string|min:3'
             ]);
 
-            $review = Review::create([
-                'sitting_request_id' => $validated['sitting_request_id'],
-                'user_id' => auth()->id(),
-                'rating' => $validated['rating'],
-                'review_text' => $validated['review_text']
+            $sittingRequest = SittingRequest::findOrFail($validated['sitting_request_id']);
+            
+            // Debug log
+            Log::info('Sitting Request Data:', [
+                'id' => $sittingRequest->id,
+                'sitter_profile_id' => $sittingRequest->sitter_profile_id,
+                'status' => $sittingRequest->status
             ]);
 
-            Log::info('Review succesvol aangemaakt:', $review->toArray());
+            // Maak de review data klaar
+            $reviewData = [
+                'sitting_request_id' => $validated['sitting_request_id'],
+                'user_id' => auth()->id(),
+                'sitter_profile_id' => $sittingRequest->sitter_profile_id,
+                'rating' => $validated['rating'],
+                'review_text' => $validated['review_text']
+            ];
+
+            Log::info('Attempting to create review with data:', $reviewData);
+
+            // Probeer de review direct via DB te maken om te zien of dat werkt
+            $review = DB::table('reviews')->insert([
+                'sitting_request_id' => $validated['sitting_request_id'],
+                'user_id' => auth()->id(),
+                'sitter_profile_id' => $sittingRequest->sitter_profile_id,
+                'rating' => $validated['rating'],
+                'review_text' => $validated['review_text'],
+                'created_at' => now(),
+                'updated_at' => now()
+            ]);
+
+            Log::info('Review inserted via DB:', ['success' => $review]);
 
             return redirect()->back()->with('success', 'Review succesvol geplaatst!');
 
@@ -38,7 +64,7 @@ class ReviewController extends Controller
             ]);
 
             return redirect()->back()->withErrors([
-                'error' => 'Er ging iets mis bij het plaatsen van de review.'
+                'error' => 'Er ging iets mis bij het plaatsen van de review. Details: ' . $e->getMessage()
             ])->withInput();
         }
     }

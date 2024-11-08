@@ -47,12 +47,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Sitting requests routes
     Route::prefix('sitting-requests')->group(function () {
-        Route::get('/', [SittingRequestController::class, 'index'])->name('sitting-requests.index');
-        Route::get('/my-requests', [SittingRequestController::class, 'myRequests'])->name('sitting-requests.my-requests');
-        Route::get('/received', [SittingRequestController::class, 'receivedRequests'])->name('sitting-requests.received');
-        Route::get('/create', [SittingRequestController::class, 'create'])->name('sitting-requests.create');
-        Route::post('/', [SittingRequestController::class, 'store'])->name('sitting-requests.store');
-        Route::patch('/{sittingRequest}', [SittingRequestController::class, 'update'])->name('sitting-requests.update');
+        Route::get('/', [SittingRequestController::class, 'index'])
+            ->name('sitting-requests.index');
+        Route::get('/my-requests', [SittingRequestController::class, 'myRequests'])
+            ->name('sitting-requests.my-requests');
+        Route::get('/received', [SittingRequestController::class, 'receivedRequests'])
+            ->name('sitting-requests.received');
+        Route::post('/', [SittingRequestController::class, 'store'])
+            ->name('sitting-requests.store');
+        Route::match(['put', 'patch'], '/{sittingRequest}', [SittingRequestController::class, 'update'])
+            ->name('sitting-requests.update');
     });
 
     // Reviews routes

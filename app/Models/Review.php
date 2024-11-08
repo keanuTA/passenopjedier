@@ -9,6 +9,7 @@ class Review extends Model
     protected $fillable = [
         'sitting_request_id',
         'user_id',
+        'sitter_profile_id',  // Controleer of deze er echt in staat
         'rating',
         'review_text'
     ];
@@ -21,5 +22,10 @@ class Review extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function sitterProfile()
+    {
+        return $this->belongsTo(SitterProfile::class);
     }
 }
