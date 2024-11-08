@@ -41,11 +41,16 @@
           Filters wissen
         </SecondaryButton>
       </div>
+
+      <!-- Debug Info -->
+      <div class="mt-4 p-2 bg-gray-100 rounded text-xs">
+        <pre>Huidige filters: {{ JSON.stringify(localFilters, null, 2) }}</pre>
+      </div>
     </div>
   </template>
   
   <script setup>
-  import { ref, computed } from 'vue';
+  import { ref, computed, onMounted } from 'vue';
   import { router } from '@inertiajs/vue3';
   import InputLabel from '@/Components/InputLabel.vue';
   import TextInput from '@/Components/TextInput.vue';
@@ -61,6 +66,11 @@
     }
   });
   
+  // Log initiële props
+  onMounted(() => {
+    console.log('Component gemount met initiële filters:', props.initialFilters);
+  });
+  
   const localFilters = ref({...props.initialFilters});
   
   const hasActiveFilters = computed(() => {
@@ -69,20 +79,32 @@
   
   let timeoutId = null;
   const updateFilters = () => {
+    console.log('Filter update gestart met waarden:', localFilters.value);
     clearTimeout(timeoutId);
     timeoutId = setTimeout(() => {
+      console.log('Filter update wordt uitgevoerd met:', localFilters.value);
       router.get(
         route('sitter-profiles.index'),
         localFilters.value,
         {
           preserveState: true,
-          preserveScroll: true
+          preserveScroll: true,
+          onBefore: () => {
+            console.log('Voor de request:', localFilters.value);
+          },
+          onSuccess: (page) => {
+            console.log('Request succesvol:', page);
+          },
+          onError: (errors) => {
+            console.error('Filter fouten:', errors);
+          }
         }
       );
     }, 300);
   };
   
   const resetFilters = () => {
+    console.log('Filters worden gereset');
     localFilters.value = {
       huisdier_type: '',
       max_uurtarief: ''

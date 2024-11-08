@@ -52,8 +52,8 @@ watch(() => props.profile, (newProfile) => {
 
 onMounted(() => {
     if (props.profile) {
-        contactForm.sitter_profile_id = props.profile.id;
-        contactForm.uurtarief = props.profile.uurtarief;
+        contactForm.sitter_profile_id = props.profile.id ?? null;
+        contactForm.uurtarief = props.profile.uurtarief ?? 0.00;
         console.log('Form initialized with:', {
             sitter_profile_id: contactForm.sitter_profile_id,
             uurtarief: contactForm.uurtarief
