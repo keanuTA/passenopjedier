@@ -11,22 +11,38 @@ class AdminController extends Controller
 {
     public function index()
     {
+        \Log::info('Admin index accessed', [
+            'user_id' => auth()->id(),
+            'is_admin' => auth()->user()->is_admin
+        ]);
+
         $users = User::with(['sitterProfile', 'petProfiles'])
             ->orderBy('created_at', 'desc')
             ->paginate(10);
 
-        $sittingRequests = SittingRequest::with(['owner', 'sitterProfile'])
+        $sittingRequests = SittingRequest::with([
+                'user', // eigenaar
+                'sitterProfile.user', // oppas
+                'petProfile' // huisdier info
+            ])
             ->orderBy('created_at', 'desc')
             ->paginate(10);
 
         return Inertia::render('Admin/Dashboard', [
             'users' => $users,
-            'sittingRequests' => $sittingRequests
+            'sittingRequests' => $sittingRequests,
+            'can' => [
+                'manage_users' => auth()->user()->is_admin
+            ]
         ]);
     }
 
     public function toggleUserBlock(User $user)
     {
+        if ($user->id === auth()->id()) {
+            return back()->with('error', 'Je kunt jezelf niet blokkeren.');
+        }
+
         $user->is_blocked = !$user->is_blocked;
         $user->save();
 
@@ -38,7 +54,6 @@ class AdminController extends Controller
     public function deleteSittingRequest(SittingRequest $sittingRequest)
     {
         $sittingRequest->delete();
-
         return back()->with('success', 'Oppasaanvraag is verwijderd.');
     }
 }

@@ -67,7 +67,11 @@
                             </table>
                         </div>
                         
-                        <Pagination :links="users.links" class="mt-6" />
+                        <Pagination 
+                            v-if="users.links" 
+                            :links="users.links" 
+                            class="mt-6" 
+                        />
                     </div>
                 </div>
 
@@ -81,6 +85,9 @@
                                 <thead>
                                     <tr>
                                         <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Huisdier
+                                        </th>
+                                        <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Eigenaar
                                         </th>
                                         <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -93,6 +100,9 @@
                                             Eind Datum
                                         </th>
                                         <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Status
+                                        </th>
+                                        <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Acties
                                         </th>
                                     </tr>
@@ -100,16 +110,31 @@
                                 <tbody class="bg-white divide-y divide-gray-200">
                                     <tr v-for="request in sittingRequests.data" :key="request.id">
                                         <td class="px-6 py-4 whitespace-nowrap">
-                                            {{ request.owner.name }}
+                                            {{ request.pet_profile?.name || 'N/A' }}
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
-                                            {{ request.sitter_profile?.user.name }}
+                                            {{ request.user?.name || 'Onbekend' }}
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            {{ request.sitter_profile?.user?.name || 'Nog niet toegewezen' }}
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
                                             {{ formatDate(request.start_datum) }}
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
                                             {{ formatDate(request.eind_datum) }}
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span 
+                                                :class="[
+                                                    'px-2 inline-flex text-xs leading-5 font-semibold rounded-full',
+                                                    request.status === 'open' ? 'bg-green-100 text-green-800' :
+                                                    request.status === 'toegewezen' ? 'bg-blue-100 text-blue-800' :
+                                                    'bg-gray-100 text-gray-800'
+                                                ]"
+                                            >
+                                                {{ request.status }}
+                                            </span>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm">
                                             <button 
@@ -124,7 +149,11 @@
                             </table>
                         </div>
                         
-                        <Pagination :links="sittingRequests.links" class="mt-6" />
+                        <Pagination 
+                            v-if="sittingRequests.links" 
+                            :links="sittingRequests.links" 
+                            class="mt-6" 
+                        />
                     </div>
                 </div>
             </div>
@@ -133,9 +162,10 @@
 </template>
 
 <script setup>
+import { Link } from '@inertiajs/vue3';
+import { router } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Pagination from '@/Components/Pagination.vue';
-import { router } from '@inertiajs/vue3';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
 
@@ -144,8 +174,9 @@ const props = defineProps({
     sittingRequests: Object
 });
 
-const formatDate = (date) => {
-    return format(new Date(date), 'PPP', { locale: nl });
+const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    return format(new Date(dateString), 'PPP', { locale: nl });
 };
 
 const toggleUserBlock = (user) => {

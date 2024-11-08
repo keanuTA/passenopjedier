@@ -1,33 +1,3 @@
-<script setup>
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Head, Link } from '@inertiajs/vue3';
-import { ref, watch } from 'vue';
-import debounce from 'lodash/debounce';
-import { router } from '@inertiajs/vue3';
-
-const props = defineProps({
-    profiles: Object,
-    filters: Object,
-    can: Object
-});
-
-const search = ref({
-    huisdier_type: props.filters.huisdier_type || '',
-    max_uurtarief: props.filters.max_uurtarief || ''
-});
-
-// Debounced filter function
-const updateFilter = debounce(() => {
-    router.get(
-        route('sitter-profiles.index'),
-        search.value,
-        { preserveState: true }
-    );
-}, 300);
-
-watch(search, updateFilter, { deep: true });
-</script>
-
 <template>
     <Head title="Oppasprofielen" />
 
@@ -53,7 +23,8 @@ watch(search, updateFilter, { deep: true });
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Type Huisdier</label>
                             <select
-                                v-model="search.huisdier_type"
+                                v-model="filters.huisdier_type"
+                                @change="updateFilter"
                                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                             >
                                 <option value="">Alle types</option>
@@ -69,7 +40,8 @@ watch(search, updateFilter, { deep: true });
                             <label class="block text-sm font-medium text-gray-700">Maximum uurtarief (€)</label>
                             <input
                                 type="number"
-                                v-model="search.max_uurtarief"
+                                v-model="filters.max_uurtarief"
+                                @input="updateFilter"
                                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                                 min="0"
                                 step="0.50"
@@ -115,13 +87,6 @@ watch(search, updateFilter, { deep: true });
                                 <Link
                                     :href="route('sitter-profiles.show', profile.id)"
                                     class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200"
-                                    @click="(e) => {
-                                        console.log('Clicking profile:', profile.id);
-                                        if (!profile.id) {
-                                            e.preventDefault();
-                                            alert('Geen geldig profiel ID gevonden');
-                                        }
-                                    }"
                                 >
                                     Bekijk Profiel
                                 </Link>
@@ -138,6 +103,37 @@ watch(search, updateFilter, { deep: true });
         </div>
     </AuthenticatedLayout>
 </template>
+
+<script setup>
+import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import { Head, Link } from '@inertiajs/vue3';
+import { ref } from 'vue';
+import debounce from 'lodash/debounce';
+import { router } from '@inertiajs/vue3';
+
+const props = defineProps({
+    profiles: Object,
+    filters: Object,
+    can: Object
+});
+
+// Initialize filters with reactive reference
+const filters = ref({
+    huisdier_type: props.filters?.huisdier_type || '',
+    max_uurtarief: props.filters?.max_uurtarief || ''
+});
+
+// Debounced filter function
+const updateFilter = debounce(() => {
+    router.get(route('sitter-profiles.index'), {
+        huisdier_type: filters.value.huisdier_type,
+        max_uurtarief: filters.value.max_uurtarief
+    }, {
+        preserveState: true,
+        preserveScroll: true
+    });
+}, 300);
+</script>
 
 <style>
 .pb-2\/3 {
