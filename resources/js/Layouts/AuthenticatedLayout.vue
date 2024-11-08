@@ -19,9 +19,12 @@ const showingNavigationDropdown = ref(false);
                     <div class="flex h-16 justify-between">
                         <div class="flex">
                             <!-- Logo -->
-                            <div class="flex shrink-0 items-center">
+                            <div class="flex-shrink-0 flex items-center">
                                 <Link :href="route('dashboard')">
-                                    <ApplicationLogo class="block h-9 w-auto fill-current text-gray-800" />
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-800" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M18 12c0 .6-.4 1-1 1s-1-.4-1-1 .4-1 1-1 1 .4 1 1M7 12c0 .6-.4 1-1 1s-1-.4-1-1 .4-1 1-1 1 .4 1 1M15 14c-.6 1.5-2.1 3-3 3s-2.4-1.5-3-3"/>
+                                        <path d="M10.2 5.2C11.2 4.4 12 3 12 3s.8 1.4 1.8 2.2C15.7 6.8 17.5 7 19 7c-.3 2.9-1.8 5.5-4.1 7.1-.2.1-.4.3-.6.4-.5.3-1 .6-1.5.8h-1.6c-.5-.2-1-.5-1.5-.8-.2-.1-.4-.2-.6-.4C6.8 12.5 5.3 9.9 5 7c1.5 0 3.3-.2 5.2-1.8"/>
+                                    </svg>
                                 </Link>
                             </div>
 

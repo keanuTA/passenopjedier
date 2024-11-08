@@ -5,12 +5,12 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SitterProfileController;
 use App\Http\Controllers\PetProfileController;
 use App\Http\Controllers\SittingRequestController;
+use App\Http\Controllers\ReviewController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
-use App\Http\Controllers\ReviewController;
 
-
+// Public routes
 Route::get('/', function () {
     return Inertia::render('Welcome', [
         'canLogin' => Route::has('login'),
@@ -20,6 +20,7 @@ Route::get('/', function () {
     ]);
 });
 
+// Dashboard route
 Route::get('/dashboard', function () {
     return Inertia::render('Dashboard', [
         'auth' => [
@@ -28,54 +29,54 @@ Route::get('/dashboard', function () {
     ]);
 })->middleware(['auth', 'verified'])->name('dashboard');
 
-// Groep authenticatie routes
+// Authenticated routes group
 Route::middleware(['auth', 'verified'])->group(function () {
     // User profile routes
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     
-      // Sitter profiles routes
-      Route::resource('sitter-profiles', SitterProfileController::class)
-      ->except(['edit', 'update', 'show']);
-        Route::get('/sitter-profiles/{profile}', [SitterProfileController::class, 'show'])
-            ->name('sitter-profiles.show');
-        Route::get('/sitter-profiles/{sitterProfile}/edit', [SitterProfileController::class, 'edit'])
-            ->name('sitter-profiles.edit');
-        Route::put('/sitter-profiles/{sitterProfile}', [SitterProfileController::class, 'update'])
-      ->name('sitter-profiles.update');
+    // Sitter profiles routes
+    Route::resource('sitter-profiles', SitterProfileController::class);
+    Route::get('/sitter-profiles/{profile}/edit', [SitterProfileController::class, 'edit'])
+        ->name('sitter-profiles.edit');
+    Route::put('/sitter-profiles/{profile}', [SitterProfileController::class, 'update'])
+        ->name('sitter-profiles.update');
     
-    Route::get('reviews', [ReviewController::class, 'index'])->name('reviews.index');
-    Route::get('reviews/{review}', [ReviewController::class, 'show'])->name('reviews.show');
-    Route::post('reviews', [ReviewController::class, 'store'])->name('reviews.store');
-
+    // Reviews routes
+    Route::resource('reviews', ReviewController::class)->only([
+        'index', 'show', 'store'
+    ]);
 
     // Pet profiles routes
     Route::resource('pet-profiles', PetProfileController::class);
 
     // Sitting requests routes
-    Route::middleware(['auth'])->group(function () {
-        Route::get('/sitting-requests', [SittingRequestController::class, 'index'])
+    Route::prefix('sitting-requests')->group(function () {
+        Route::get('/', [SittingRequestController::class, 'index'])
             ->name('sitting-requests.index');
-        Route::post('/sitting-requests', [SittingRequestController::class, 'store'])
+        Route::get('/create', [SittingRequestController::class, 'create'])
+            ->name('sitting-requests.create');
+        Route::post('/', [SittingRequestController::class, 'store'])
             ->name('sitting-requests.store');
+        Route::get('/{sittingRequest}', [SittingRequestController::class, 'show'])
+            ->name('sitting-requests.show');
         Route::get('/my-requests', [SittingRequestController::class, 'myRequests'])
             ->name('sitting-requests.my-requests');
         Route::get('/received-requests', [SittingRequestController::class, 'receivedRequests'])
             ->name('sitting-requests.received');
+        Route::patch('/{sittingRequest}', [SittingRequestController::class, 'update'])
+            ->name('sitting-requests.update');
     });
 
     // Admin routes
-    Route::middleware(['auth', 'verified', 'is_admin'])->group(function () {
-        Route::get('/admin', [AdminController::class, 'index'])->name('admin.dashboard');
-        Route::post('/admin/users/{user}/toggle-block', [AdminController::class, 'toggleUserBlock'])
+    Route::middleware(['is_admin'])->prefix('admin')->group(function () {
+        Route::get('/', [AdminController::class, 'index'])->name('admin.dashboard');
+        Route::post('/users/{user}/toggle-block', [AdminController::class, 'toggleUserBlock'])
             ->name('admin.users.toggle-block');
-        Route::delete('/admin/sitting-requests/{sittingRequest}', [AdminController::class, 'deleteSittingRequest'])
+        Route::delete('/sitting-requests/{sittingRequest}', [AdminController::class, 'deleteSittingRequest'])
             ->name('admin.sitting-requests.delete');
     });
-    
-    Route::resource('sitting-requests', SittingRequestController::class)
-        ->except(['create', 'edit', 'destroy']);
 });
 
 require __DIR__.'/auth.php';

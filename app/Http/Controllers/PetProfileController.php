@@ -29,12 +29,56 @@ class PetProfileController extends Controller
             'when_needed' => 'required|date',
             'duration' => 'required|integer',
             'hourly_rate' => 'required|numeric',
-            'important_info' => 'nullable|string'
+            'important_info' => 'required|string'
         ]);
+
+        // Zorg ervoor dat de datum correct wordt opgeslagen
+        $validated['when_needed'] = date('Y-m-d H:i:s', strtotime($validated['when_needed']));
 
         auth()->user()->petProfiles()->create($validated);
 
         return redirect()->route('pet-profiles.index')
             ->with('message', 'Huisdierprofiel succesvol aangemaakt!');
+    }
+
+    public function show(PetProfile $petProfile)
+    {
+        return Inertia::render('PetProfiles/Show', [
+            'petProfile' => $petProfile
+        ]);
+    }
+
+    public function edit(PetProfile $petProfile)
+    {
+        return Inertia::render('PetProfiles/Edit', [
+            'petProfile' => $petProfile
+        ]);
+    }
+
+    public function update(Request $request, PetProfile $petProfile)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'type' => 'required|string|max:255',
+            'when_needed' => 'required|date',
+            'duration' => 'required|integer',
+            'hourly_rate' => 'required|numeric',
+            'important_info' => 'required|string'
+        ]);
+
+        $validated['when_needed'] = date('Y-m-d H:i:s', strtotime($validated['when_needed']));
+        
+        $petProfile->update($validated);
+
+        return redirect()->route('pet-profiles.index')
+            ->with('message', 'Huisdierprofiel succesvol bijgewerkt!');
+    }
+
+    public function destroy(PetProfile $petProfile)
+    {
+        $petProfile->delete();
+
+        return redirect()->route('pet-profiles.index')
+            ->with('message', 'Huisdierprofiel succesvol verwijderd!');
     }
 }
