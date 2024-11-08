@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\SitterProfile;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -49,7 +50,7 @@ class User extends Authenticatable
     /**
      * Get the pet profiles for the user.
      */
-    public function petProfiles(): HasMany
+    public function petProfiles()
     {
         return $this->hasMany(PetProfile::class);
     }
@@ -60,5 +61,10 @@ class User extends Authenticatable
     public function sittingRequests(): HasMany
     {
         return $this->hasMany(SittingRequest::class, 'sitter_id');
+    }
+    
+    public function sitterProfile()
+    {
+        return $this->hasOne(SitterProfile::class);
     }
 }

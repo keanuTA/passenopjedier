@@ -1,0 +1,16 @@
+[90m= [39m[34;4mApp\Models\SitterProfile[39;24m {#6246
+    [34mid[39m: [35m1[39m,
+    [34mcreated_at[39m: "[32m2024-11-07 21:11:15[39m",
+    [34mupdated_at[39m: "[32m2024-11-07 21:11:15[39m",
+    [34muser_id[39m: [35m1[39m,
+    [34mhuisdier_voorkeuren[39m: "[32m"[\"Hond\",\"Vis\"]"[39m",
+    [34mervaring[39m: "[32mIk heb ruim vier jaar ervaring met het verzorgen en omgaan met huisdieren, waaronder honden, katten en kleinere huisdieren zoals konijnen en cavia’s. Door deze ervaring weet ik hoe belangrijk een stabiele en liefdevolle omgeving is voor elk huisdier, en kan ik goed inspelen op hun individuele behoeften en gedrag.[39m",
+    [34mover_mij[39m: "[32mMijn naam is Keanu, een gedreven en enthousiaste persoon met passie voor het welzijn van dieren. Met een achtergrond in het verzorgen van verschillende huisdieren, waaronder honden, katten en andere kleine dieren, ben ik goed op de hoogte van hun specifieke behoeften. In mijn dagelijkse leven ben ik een front-end designer en werk ik bij het familiebedrijf. In mijn vrije tijd besteed ik graag aandacht aan mijn huisdieren en zorg ik ervoor dat ze de nodige aandacht, zorg en liefde krijgen die ze verdienen.[39m",
+    [34mbeschikbare_tijden[39m: [36mnull[39m,
+    [34muurtarief[39m: "[32m15.00[39m",
+    [34mprofielfoto_pad[39m: "[32mphotos/profile_5f2bd723-f732-4f9e-a3c1-470194c05888.png[39m",
+    [34mvideo_intro_pad[39m: "[32mvideos/video_e6843071-863d-4704-b4e0-37b4f5582fd2.mp4[39m",
+    [34mis_beschikbaar[39m: [35m1[39m,
+    [34mservice_gebied[39m: [36mnull[39m,
+  }
+

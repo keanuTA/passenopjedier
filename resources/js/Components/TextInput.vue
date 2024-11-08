@@ -2,7 +2,7 @@
 import { onMounted, ref } from 'vue';
 
 const model = defineModel({
-    type: String,
+    type: [String, Number],  // Accepteert nu zowel strings als numbers
     required: true,
 });
 
@@ -22,5 +22,6 @@ defineExpose({ focus: () => input.value.focus() });
         class="rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
         v-model="model"
         ref="input"
+        v-bind="$attrs"
     />
 </template>

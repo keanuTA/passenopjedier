@@ -1,32 +1,79 @@
 <script setup>
 import { Link, useForm } from '@inertiajs/vue3';
+import { ref, watch, computed, onMounted } from 'vue';  
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { ref } from 'vue';
 import InputError from '@/Components/InputError.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
 import Modal from '@/Components/Modal.vue';
 
-defineProps({
+//  props definiëren
+const props = defineProps({
     profile: {
         type: Object,
         required: true
     }
 });
 
+// Debug logging
+console.log('Full profile:', props.profile);
+console.log('Complete profile data:', props.profile);
+console.log('Profile ID:', props.profile?.id);
+console.log('Uurtarief:', props.profile?.uurtarief);
+
+// Dan de modal state
 const showContactModal = ref(false);
 
-const contactForm = useForm({
-    bericht: '',
-    sitting_request_id: null
+// Computed property voor uurtarief
+const profileUurtarief = computed(() => {
+    const tarief = props.profile?.uurtarief;
+    console.log('Computing uurtarief:', tarief);
+    return tarief ? String(tarief) : '';
 });
 
+// formulier initialiseren
+const contactForm = useForm({
+    start_datum: '',
+    eind_datum: '',
+    uurtarief: props.profile?.uurtarief ?? '0.00',
+    extra_informatie: '',
+    sitter_profile_id: props.profile?.id // Direct de ID meegeven
+});
+
+
+// watch toevoegen 
+watch(() => props.profile, (newProfile) => {
+    console.log('Profile updated:', newProfile);
+    if (newProfile) {
+        contactForm.sitter_profile_id = newProfile.id;
+        contactForm.uurtarief = newProfile.uurtarief;
+    }
+}, { immediate: true, deep: true });
+
+onMounted(() => {
+    if (props.profile) {
+        contactForm.sitter_profile_id = props.profile.id;
+        contactForm.uurtarief = props.profile.uurtarief;
+        console.log('Form initialized with:', {
+            sitter_profile_id: contactForm.sitter_profile_id,
+            uurtarief: contactForm.uurtarief
+        });
+    }
+});
+
+// Submit functie
 const submitContact = () => {
-    contactForm.post(route('sitting-responses.store', { profile: profile.id }), {
+    console.log('Submitting form:', contactForm.data());
+
+    contactForm.post(route('sitting-requests.store'), {
         onSuccess: () => {
+            console.log('Form submitted successfully');
             showContactModal.value = false;
             contactForm.reset();
         },
+        onError: (errors) => {
+            console.error('Form submission errors:', errors);
+        }
     });
 };
 </script>
@@ -162,22 +209,74 @@ const submitContact = () => {
             </div>
         </div>
 
-        <!-- Contact Modal -->
-        <Modal :show="showContactModal" @close="showContactModal = false">
+       <!-- Contact Modal -->
+       <Modal :show="showContactModal" @close="showContactModal = false">
             <div class="p-6">
                 <h3 class="text-lg font-medium text-gray-900 mb-4">
                     Contact opnemen met {{ profile.user?.name ?? 'Oppas' }}
                 </h3>
                 <form @submit.prevent="submitContact">
+                    <!-- Hidden input voor sitter_profile_id - alleen v-model -->
+                    <input
+                        type="hidden"
+                        v-model="contactForm.sitter_profile_id"
+                    />
+
+                    <!-- Start datum -->
                     <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700">Start datum</label>
+                        <input
+                            type="datetime-local"
+                            v-model="contactForm.start_datum"
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                            required
+                        />
+                        <InputError :message="contactForm.errors.start_datum" class="mt-2" />
+                    </div>
+
+                    <!-- Eind datum -->
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700">Eind datum</label>
+                        <input
+                            type="datetime-local"
+                            v-model="contactForm.eind_datum"
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                            required
+                        />
+                        <InputError :message="contactForm.errors.eind_datum" class="mt-2" />
+                    </div>
+
+                    <!-- Uurtarief -->
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700">Uurtarief (€/uur)</label>
+                        <input
+                            type="number"
+                            step="0.01"
+                            v-model="contactForm.uurtarief"
+                            class="mt-1 block w-full rounded-md border-gray-300 bg-gray-50 shadow-sm"
+                            readonly
+                        />
+                        <InputError :message="contactForm.errors.uurtarief" class="mt-2" />
+                    </div>
+
+                    <!-- Extra informatie -->
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700">Extra informatie</label>
                         <textarea
-                            v-model="contactForm.bericht"
+                            v-model="contactForm.extra_informatie"
                             rows="4"
-                            class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                            placeholder="Schrijf hier je bericht..."
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                            placeholder="Beschrijf hier je verzoek en eventuele specifieke wensen..."
                             required
                         ></textarea>
-                        <InputError :message="contactForm.errors.bericht" class="mt-2" />
+                        <InputError :message="contactForm.errors.extra_informatie" class="mt-2" />
+                    </div>
+                    
+                    <!-- Debug info -->
+                    <div class="mb-4 text-sm text-gray-500">
+                        <p>Profile ID: {{ profile.id }}</p>
+                        <p>Uurtarief: {{ profile.uurtarief }}</p>
+                        <p>Form Profile ID: {{ contactForm.sitter_profile_id }}</p>
                     </div>
                     
                     <div class="flex justify-end gap-4">
@@ -188,7 +287,9 @@ const submitContact = () => {
                         >
                             Annuleren
                         </button>
-                        <PrimaryButton :disabled="contactForm.processing">
+                        <PrimaryButton 
+                            :disabled="contactForm.processing || !contactForm.sitter_profile_id"
+                        >
                             Versturen
                         </PrimaryButton>
                     </div>

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\PetProfile;
+use App\Models\SitterProfile;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 

@@ -43,6 +43,12 @@ const showingNavigationDropdown = ref(false);
                                         <span>Oppasprofiel</span>
                                     </div>
                                 </NavLink>
+                                <NavLink :href="route('sitting-requests.my-requests')" :active="route().current('sitting-requests.my-requests')">
+                                    Mijn Oppasverzoeken
+                                </NavLink>
+                                <NavLink :href="route('sitting-requests.received')" :active="route().current('sitting-requests.received')">
+                                    Ontvangen Verzoeken
+                                </NavLink>
                             </div>
                         </div>
 
@@ -113,6 +119,9 @@ const showingNavigationDropdown = ref(false);
                         </ResponsiveNavLink>
                         <ResponsiveNavLink :href="route('sitter-profiles.index')" :active="route().current('sitter-profiles.*')">
                             Oppasprofiel
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink :href="route('sitting-requests.received')" :active="route().current('sitting-requests.received')">
+                            Ontvangen Verzoeken
                         </ResponsiveNavLink>
                     </div>
 
