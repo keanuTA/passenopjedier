@@ -22,6 +22,8 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'is_admin',
+        'is_blocked'  // Voeg deze toe
     ];
 
     /**
@@ -32,6 +34,12 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+    ];
+    
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+        'password' => 'hashed',
+        'is_admin' => 'boolean',  // Voeg deze toe
     ];
 
     /**
@@ -46,6 +54,7 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
 
     /**
      * Get the pet profiles for the user.
@@ -66,5 +75,11 @@ class User extends Authenticatable
     public function sitterProfile()
     {
         return $this->hasOne(SitterProfile::class);
+    }
+
+    // Helper method om admin status te checken
+    public function isAdmin(): bool
+    {
+        return $this->is_admin === true;
     }
 }

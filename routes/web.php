@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AdminController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SitterProfileController;
 use App\Http\Controllers\PetProfileController;
@@ -20,7 +21,11 @@ Route::get('/', function () {
 });
 
 Route::get('/dashboard', function () {
-    return Inertia::render('Dashboard');
+    return Inertia::render('Dashboard', [
+        'auth' => [
+            'user' => auth()->user()
+        ]
+    ]);
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 // Groep authenticatie routes
@@ -55,6 +60,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->name('sitting-requests.my-requests');
         Route::get('/received-requests', [SittingRequestController::class, 'receivedRequests'])
             ->name('sitting-requests.received');
+    });
+
+    // Admin routes
+    Route::middleware(['auth', 'verified', 'is_admin'])->group(function () {
+        Route::get('/admin', [AdminController::class, 'index'])->name('admin.dashboard');
+        Route::post('/admin/users/{user}/toggle-block', [AdminController::class, 'toggleUserBlock'])
+            ->name('admin.users.toggle-block');
+        Route::delete('/admin/sitting-requests/{sittingRequest}', [AdminController::class, 'deleteSittingRequest'])
+            ->name('admin.sitting-requests.delete');
     });
     
     Route::resource('sitting-requests', SittingRequestController::class)
