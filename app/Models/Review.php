@@ -9,7 +9,7 @@ class Review extends Model
     protected $fillable = [
         'sitting_request_id',
         'user_id',
-        'sitter_profile_id',  // Controleer of deze er echt in staat
+        'sitter_profile_id', 
         'rating',
         'review_text'
     ];

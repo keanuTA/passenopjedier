@@ -1,3 +1,74 @@
+// resources/js/Pages/Admin/Dashboard.vue
+<script setup>
+import { Link, router } from '@inertiajs/vue3';  // Voeg router import toe
+import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import { ref } from 'vue';
+
+const props = defineProps({
+    users: {
+        type: Array,
+        required: true
+    },
+    sittingRequests: {
+        type: Array,
+        required: true
+    }
+});
+
+const loading = ref(false);
+
+const handleUserStatus = async (userId, action) => {
+    loading.value = true;
+    try {
+        // Gebruik Inertia router in plaats van axios
+        await router.patch(`/admin/users/${userId}/status`, { 
+            action: action 
+        }, {
+            preserveScroll: true,
+            onSuccess: () => {
+                loading.value = false;
+            },
+            onError: () => {
+                loading.value = false;
+                alert('Er ging iets mis bij het bijwerken van de gebruiker status');
+            }
+        });
+    } catch (error) {
+        loading.value = false;
+        console.error('Error updating user status:', error);
+    }
+};
+
+const handleRequestStatus = async (requestId, status) => {
+    loading.value = true;
+    try {
+        // Gebruik Inertia router in plaats van axios
+        await router.patch(`/admin/sitting-requests/${requestId}/status`, {
+            status: status
+        }, {
+            preserveScroll: true,
+            onSuccess: () => {
+                loading.value = false;
+            },
+            onError: () => {
+                loading.value = false;
+                alert('Er ging iets mis bij het bijwerken van het oppasverzoek');
+            }
+        });
+    } catch (error) {
+        loading.value = false;
+        console.error('Error updating request status:', error);
+    }
+};
+
+const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleString('nl-NL', {
+        dateStyle: 'medium',
+        timeStyle: 'short'
+    });
+};
+</script>
+
 <template>
     <AuthenticatedLayout>
         <template #header>
@@ -6,31 +77,30 @@
 
         <div class="py-12">
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-                <!-- Gebruikers Sectie -->
+                <!-- Gebruikers Beheer -->
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mb-6">
                     <div class="p-6">
                         <h3 class="text-lg font-medium text-gray-900 mb-4">Gebruikers Beheer</h3>
-                        
                         <div class="overflow-x-auto">
                             <table class="min-w-full divide-y divide-gray-200">
-                                <thead>
+                                <thead class="bg-gray-50">
                                     <tr>
-                                        <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Naam
                                         </th>
-                                        <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Email
                                         </th>
-                                        <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Status
                                         </th>
-                                        <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Acties
                                         </th>
                                     </tr>
                                 </thead>
                                 <tbody class="bg-white divide-y divide-gray-200">
-                                    <tr v-for="user in users.data" :key="user.id">
+                                    <tr v-for="user in users" :key="user.id">
                                         <td class="px-6 py-4 whitespace-nowrap">
                                             {{ user.name }}
                                         </td>
@@ -38,158 +108,117 @@
                                             {{ user.email }}
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
-                                            <span 
-                                                :class="[
-                                                    'px-2 inline-flex text-xs leading-5 font-semibold rounded-full',
-                                                    user.is_blocked 
-                                                        ? 'bg-red-100 text-red-800' 
-                                                        : 'bg-green-100 text-green-800'
-                                                ]"
-                                            >
-                                                {{ user.is_blocked ? 'Geblokkeerd' : 'Actief' }}
+                                            <span :class="{
+                                                'px-2 py-1 text-xs font-medium rounded-full': true,
+                                                'bg-green-100 text-green-800': user.status === 'active',
+                                                'bg-red-100 text-red-800': user.status === 'blocked'
+                                            }">
+                                                {{ user.status === 'active' ? 'Actief' : 'Geblokkeerd' }}
                                             </span>
                                         </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                            <button 
-                                                @click="toggleUserBlock(user)"
-                                                :class="[
-                                                    'px-4 py-2 rounded-md text-sm font-medium',
-                                                    user.is_blocked
-                                                        ? 'bg-green-600 text-white hover:bg-green-700'
-                                                        : 'bg-red-600 text-white hover:bg-red-700'
-                                                ]"
+                                        <td class="px-6 py-4 whitespace-nowrap text-right">
+                                            <button
+                                                @click="handleUserStatus(user.id, user.status === 'active' ? 'block' : 'unblock')"
+                                                :disabled="loading"
+                                                :class="{
+                                                    'text-sm font-medium rounded-md px-3 py-1': true,
+                                                    'text-red-600 hover:text-red-900': user.status === 'active',
+                                                    'text-green-600 hover:text-green-900': user.status === 'blocked',
+                                                    'opacity-50 cursor-not-allowed': loading
+                                                }"
                                             >
-                                                {{ user.is_blocked ? 'Deblokkeren' : 'Blokkeren' }}
+                                                {{ user.status === 'active' ? 'Blokkeer' : 'Deblokkeer' }}
                                             </button>
                                         </td>
                                     </tr>
                                 </tbody>
                             </table>
                         </div>
-                        
-                        <Pagination 
-                            v-if="users.links" 
-                            :links="users.links" 
-                            class="mt-6" 
-                        />
                     </div>
                 </div>
 
-                <!-- Oppasaanvragen Sectie -->
+                <!-- Oppasaanvragen Beheer -->
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                     <div class="p-6">
                         <h3 class="text-lg font-medium text-gray-900 mb-4">Oppasaanvragen Beheer</h3>
-                        
                         <div class="overflow-x-auto">
                             <table class="min-w-full divide-y divide-gray-200">
-                                <thead>
+                                <thead class="bg-gray-50">
                                     <tr>
-                                        <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Huisdier
                                         </th>
-                                        <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Eigenaar
                                         </th>
-                                        <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Oppas
                                         </th>
-                                        <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Start Datum
-                                        </th>
-                                        <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Eind Datum
-                                        </th>
-                                        <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Status
                                         </th>
-                                        <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Data
+                                        </th>
+                                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Acties
                                         </th>
                                     </tr>
                                 </thead>
                                 <tbody class="bg-white divide-y divide-gray-200">
-                                    <tr v-for="request in sittingRequests.data" :key="request.id">
+                                    <tr v-for="request in sittingRequests" :key="request.id">
                                         <td class="px-6 py-4 whitespace-nowrap">
-                                            {{ request.pet_profile?.name || 'N/A' }}
+                                            {{ request.pet_profile?.name }}
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
-                                            {{ request.user?.name || 'Onbekend' }}
+                                            {{ request.user?.name }}
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
-                                            {{ request.sitter_profile?.user?.name || 'Nog niet toegewezen' }}
+                                            {{ request.sitter_profile?.user?.name }}
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
-                                            {{ formatDate(request.start_datum) }}
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap">
-                                            {{ formatDate(request.eind_datum) }}
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap">
-                                            <span 
-                                                :class="[
-                                                    'px-2 inline-flex text-xs leading-5 font-semibold rounded-full',
-                                                    request.status === 'open' ? 'bg-green-100 text-green-800' :
-                                                    request.status === 'toegewezen' ? 'bg-blue-100 text-blue-800' :
-                                                    'bg-gray-100 text-gray-800'
-                                                ]"
-                                            >
+                                            <span :class="{
+                                                'px-2 py-1 text-xs font-medium rounded-full': true,
+                                                'bg-blue-100 text-blue-800': request.status === 'open',
+                                                'bg-green-100 text-green-800': request.status === 'accepted',
+                                                'bg-red-100 text-red-800': request.status === 'rejected',
+                                                'bg-gray-100 text-gray-800': request.status === 'completed'
+                                            }">
                                                 {{ request.status }}
                                             </span>
                                         </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                            <button 
-                                                @click="deleteSittingRequest(request)"
-                                                class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="text-sm text-gray-500">
+                                                Start: {{ formatDate(request.start_datum) }}<br>
+                                                Eind: {{ formatDate(request.eind_datum) }}
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-right">
+                                            <button
+                                                v-if="request.status !== 'completed'"
+                                                @click="handleRequestStatus(request.id, 'complete')"
+                                                :disabled="loading"
+                                                class="text-green-600 hover:text-green-900 text-sm font-medium mr-2"
+                                                :class="{ 'opacity-50 cursor-not-allowed': loading }"
                                             >
-                                                Verwijderen
+                                                Voltooid
+                                            </button>
+                                            <button
+                                                @click="handleRequestStatus(request.id, 'delete')"
+                                                :disabled="loading"
+                                                class="text-red-600 hover:text-red-900 text-sm font-medium"
+                                                :class="{ 'opacity-50 cursor-not-allowed': loading }"
+                                            >
+                                                Verwijder
                                             </button>
                                         </td>
                                     </tr>
                                 </tbody>
                             </table>
                         </div>
-                        
-                        <Pagination 
-                            v-if="sittingRequests.links" 
-                            :links="sittingRequests.links" 
-                            class="mt-6" 
-                        />
                     </div>
                 </div>
             </div>
         </div>
     </AuthenticatedLayout>
 </template>
-
-<script setup>
-import { Link } from '@inertiajs/vue3';
-import { router } from '@inertiajs/vue3';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import Pagination from '@/Components/Pagination.vue';
-import { format } from 'date-fns';
-import { nl } from 'date-fns/locale';
-
-const props = defineProps({
-    users: Object,
-    sittingRequests: Object
-});
-
-const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
-    return format(new Date(dateString), 'PPP', { locale: nl });
-};
-
-const toggleUserBlock = (user) => {
-    router.post(route('admin.users.toggle-block', user.id), {}, {
-        preserveScroll: true
-    });
-};
-
-const deleteSittingRequest = (request) => {
-    if (confirm('Weet je zeker dat je deze oppasaanvraag wilt verwijderen?')) {
-        router.delete(route('admin.sitting-requests.delete', request.id), {
-            preserveScroll: true
-        });
-    }
-};
-</script>

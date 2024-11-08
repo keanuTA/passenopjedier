@@ -11,14 +11,8 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        // Alias middleware
         $middleware->alias([
             'is_admin' => \App\Http\Middleware\IsAdmin::class,
-        ]);
-
-        // Web middleware groep
-        $middleware->web([
-            \App\Http\Middleware\HandleInertiaRequests::class
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

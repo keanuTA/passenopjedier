@@ -62,14 +62,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Reviews routes
     Route::resource('reviews', ReviewController::class)->only(['index', 'show', 'store']);
 
+    
     // Admin routes
-    Route::middleware(['is_admin'])->prefix('admin')->group(function () {
+    Route::middleware(['auth', 'is_admin'])->prefix('admin')->group(function () {
         Route::controller(AdminController::class)->group(function () {
             Route::get('/', 'index')->name('admin.dashboard');
+            Route::patch('/users/{user}/status', 'updateUserStatus');
+            Route::patch('/sitting-requests/{sittingRequest}/status', 'updateRequestStatus');
+            Route::delete('/sitting-requests/{sittingRequest}', 'deleteSittingRequest')  // Let op de verandering hier
+                ->name('admin.sitting-requests.delete');
             Route::post('/users/{user}/toggle-block', 'toggleUserBlock')
                 ->name('admin.users.toggle-block');
-            Route::delete('/sitting-requests/{sittingRequest}', 'deleteSittingRequest')
-                ->name('admin.sitting-requests.delete');
         });
     });
 });
