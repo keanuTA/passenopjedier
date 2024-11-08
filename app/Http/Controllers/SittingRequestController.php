@@ -187,19 +187,26 @@ public function myRequests()
      * Update de status van een oppasverzoek
      */
     public function update(Request $request, SittingRequest $sittingRequest)
-    {
-        $validated = $request->validate([
-            'status' => 'required|in:accepted,rejected'
-        ]);
+{
+    $validated = $request->validate([
+        'status' => 'required|in:accepted,rejected,completed'
+    ]);
 
-        $sittingRequest->update([
-            'status' => $validated['status']
-        ]);
+    $sittingRequest->update([
+        'status' => $validated['status']
+    ]);
 
-        return redirect()->back()->with('success', 
-            $validated['status'] === 'accepted' 
-                ? 'Oppasverzoek geaccepteerd!' 
-                : 'Oppasverzoek afgewezen.'
-        );
+    // Als de status 'completed' is, redirect naar review pagina
+    if ($validated['status'] === 'completed') {
+        return redirect()->route('reviews.create', [
+            'sitting_request_id' => $sittingRequest->id
+        ])->with('success', 'Oppasverzoek afgerond! Laat een review achter.');
     }
+
+    return redirect()->back()->with('success', 
+        $validated['status'] === 'accepted' 
+            ? 'Oppasverzoek geaccepteerd!' 
+            : 'Oppasverzoek afgewezen.'
+    );
+}
 }

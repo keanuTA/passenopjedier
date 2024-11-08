@@ -47,7 +47,6 @@ watch(() => props.sittingRequest, (newVal) => {
             </h3>
 
             <form @submit.prevent="submitReview">
-                <!-- Toon eventuele algemene errors -->
                 <div v-if="form.errors.error" class="mb-4 p-3 bg-red-100 text-red-700 rounded">
                     {{ form.errors.error }}
                 </div>
